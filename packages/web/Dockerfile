@@ -12,11 +12,12 @@ RUN pnpm install --frozen-lockfile
 RUN pnpm --filter web run build
 
 # Production stage with nginx
-FROM nginx:alpine
+FROM node:20-alpine
 
-COPY --from=builder /app/packages/web/dist /usr/share/nginx/html
-COPY packages/web/nginx.conf /etc/nginx/conf.d/default.conf
+RUN npm install -g serve
 
-EXPOSE 80
+COPY --from=builder /app/packages/web/dist /app
 
-CMD ["nginx", "-g", "daemon off;"]
+EXPOSE 3000
+
+CMD ["serve", "-s", "/app", "-l", "3000"]
