@@ -1,1 +1,20 @@
-
+{
+  "name": "fb-ad-spy",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm -r --parallel run dev",
+    "build": "pnpm -r run build",
+    "lint": "pnpm -r run lint",
+    "db:generate": "pnpm --filter server run db:generate",
+    "db:push": "pnpm --filter server run db:push",
+    "db:migrate": "pnpm --filter server run db:migrate"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}
