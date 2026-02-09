@@ -1,10 +1,11 @@
-import { Router, Request, Response, NextFunction } from 'express';
+import { Router, Response, NextFunction } from 'express';
+import type { Router as RouterType } from 'express';
 import { z } from 'zod';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { prisma } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 
-const router = Router();
+const router: RouterType = Router();
 
 const saveAdSchema = z.object({
   adData: z.object({
@@ -29,7 +30,7 @@ const saveAdSchema = z.object({
 });
 
 // Get all saved ads
-router.get('/', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get('/', authenticate, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { collectionId, tag } = req.query;
     
@@ -54,11 +55,10 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response, next: Next
 });
 
 // Save an ad
-router.post('/', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post('/', authenticate, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { adData, collectionId, notes, tags } = saveAdSchema.parse(req.body);
     
-    // Check if already saved
     const existing = await prisma.savedAd.findUnique({
       where: {
         userId_adArchiveId: {
@@ -72,7 +72,6 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response, next: Nex
       throw new AppError('Ad already saved', 400);
     }
     
-    // Verify collection belongs to user if provided
     if (collectionId) {
       const collection = await prisma.collection.findFirst({
         where: { id: collectionId, userId: req.userId },
@@ -105,7 +104,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response, next: Nex
 });
 
 // Update saved ad
-router.patch('/:id', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.patch('/:id', authenticate, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const updateSchema = z.object({
       collectionId: z.string().nullable().optional(),
@@ -143,7 +142,7 @@ router.patch('/:id', authenticate, async (req: AuthRequest, res: Response, next:
 });
 
 // Delete saved ad
-router.delete('/:id', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.delete('/:id', authenticate, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const result = await prisma.savedAd.deleteMany({
       where: {
@@ -163,7 +162,7 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res: Response, next
 });
 
 // Check if ad is saved
-router.get('/check/:adArchiveId', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get('/check/:adArchiveId', authenticate, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const savedAd = await prisma.savedAd.findUnique({
       where: {
@@ -181,7 +180,7 @@ router.get('/check/:adArchiveId', authenticate, async (req: AuthRequest, res: Re
 });
 
 // Get all tags
-router.get('/tags', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get('/tags', authenticate, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const savedAds = await prisma.savedAd.findMany({
       where: { userId: req.userId },
@@ -197,4 +196,4 @@ router.get('/tags', authenticate, async (req: AuthRequest, res: Response, next: 
   }
 });
 
-export const savedAdsRouter = router;
+export const savedAdsRouter: RouterType = router;
