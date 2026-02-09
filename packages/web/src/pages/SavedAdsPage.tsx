@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Bookmark, Filter } from 'lucide-react';
-import { useSavedAds, useTags, useDeleteSavedAd } from '../hooks/useCollections';
+import { useSavedAds, useTags } from '../hooks/useCollections';
 import AdCard from '../components/AdCard';
 
 export default function SavedAdsPage() {
