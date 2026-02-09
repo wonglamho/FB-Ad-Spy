@@ -37,4 +37,4 @@ COPY --from=builder /app/packages/server/node_modules/.prisma ./node_modules/.pr
 
 EXPOSE 3001
 
-CMD ["node", "dist/index.js"]
+CMD ["sh", "-c", "npx prisma db push && node dist/index.js"]
