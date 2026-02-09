@@ -130,44 +130,37 @@ docker compose up -d
 docker compose logs -f
 ```
 
-### 5. 配置 HTTPS（推荐）
+### 5. 配置 Nginx Proxy Manager
 
-使用 Nginx + Let's Encrypt：
+由于项目使用 `serve` 作为前端静态服务器（非内置 nginx），你需要在 NPM 中配置反向代理：
 
-```bash
-# 安装 Certbot
-sudo apt install certbot python3-certbot-nginx
+#### 方案 A：分域名（推荐）
 
-# 获取证书
-sudo certbot --nginx -d adspy.yourdomain.com
+| 域名                         | 转发目标                | SSL |
+| :------------------------- | :------------------ | :-- |
+| `adspy.yourdomain.com`     | `http://服务器IP:3000` | ✅   |
+| `api.adspy.yourdomain.com` | `http://服务器IP:3001` | ✅   |
+
+然后修改 `.env` 中的 `VITE_API_URL`：
+
+```plain
+VITE_API_URL=https://api.adspy.yourdomain.com
 ```
 
-Nginx 配置示例 ( `/etc/nginx/sites-available/fb-ad-spy`)：
+#### 方案 B：同域名 + 路径区分
+
+在 NPM 的 Advanced 配置中添加：
 
 ```nginx
-server {
-    listen 80;
-    server_name adspy.yourdomain.com;
-    return 301 https://$server_name$request_uri;
-}
-
-server {
-    listen 443 ssl http2;
-    server_name adspy.yourdomain.com;
-
-    ssl_certificate /etc/letsencrypt/live/adspy.yourdomain.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/adspy.yourdomain.com/privkey.pem;
-
-    location / {
-        proxy_pass http://localhost:80;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
+location /api {
+    proxy_pass http://服务器IP:3001;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection 'upgrade';
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
 }
 ```
 
