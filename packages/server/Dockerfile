@@ -5,13 +5,17 @@ WORKDIR /app
 # Install pnpm
 RUN npm install -g pnpm
 
-# Copy workspace files
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
-COPY packages/shared ./packages/shared
-COPY packages/server ./packages/server
+# Copy workspace config and package files
+COPY pnpm-workspace.yaml package.json ./
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/server/package.json ./packages/server/
 
 # Install dependencies
-RUN pnpm install --frozen-lockfile
+RUN pnpm install
+
+# Copy source code
+COPY packages/shared ./packages/shared
+COPY packages/server ./packages/server
 
 # Generate Prisma client
 RUN pnpm --filter server run db:generate
@@ -24,8 +28,7 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-RUN npm install -g pnpm
-
+# Copy built files and dependencies
 COPY --from=builder /app/packages/server/dist ./dist
 COPY --from=builder /app/packages/server/package.json ./
 COPY --from=builder /app/packages/server/prisma ./prisma
