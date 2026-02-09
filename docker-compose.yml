@@ -39,6 +39,8 @@ services:
       dockerfile: packages/server/Dockerfile
     container_name: fb-ad-spy-server
     restart: unless-stopped
+    ports:
+      - "${SERVER_PORT:-3001}:3001"
     environment:
       NODE_ENV: production
       PORT: 3001
@@ -70,7 +72,7 @@ services:
     restart: unless-stopped
     ports:
       - "${WEB_PORT:-3000}:3000"
-    environment：
+    environment:
       - VITE_API_URL=${API_URL:-http://localhost:3001/api}
     depends_on:
       - server
