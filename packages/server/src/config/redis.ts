@@ -3,10 +3,7 @@ import { logger } from '../utils/logger';
 
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 
-export const redis = new Redis(redisUrl, {
-  maxRetriesPerRequest: 3,
-  retryDelayOnFailover: 100,
-});
+export const redis = new Redis(redisUrl);
 
 redis.on('connect', () => {
   logger.info('Redis connected');
