@@ -66,4 +66,58 @@ router.post('/login', async (req: Request, res: Response, next: NextFunction): P
     const token = jwt.sign(
       { userId: user.id },
       process.env.JWT_SECRET!,
-      { ex
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+    );
+
+    const { password: _, ...userWithoutPassword } = user;
+    res.json({ user: userWithoutPassword, token });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get current user
+router.get('/me', authenticate, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId },
+      select: { id: true, email: true, name: true, createdAt: true, updatedAt: true },
+    });
+
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+
+    res.json({ user });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Update profile
+router.patch('/me', authenticate, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const updateSchema = z.object({
+      name: z.string().min(2).optional(),
+      password: z.string().min(8).optional(),
+    });
+
+    const data = updateSchema.parse(req.body);
+    
+    const updateData: { name?: string; password?: string } = {};
+    if (data.name) updateData.name = data.name;
+    if (data.password) updateData.password = await bcrypt.hash(data.password, 12);
+
+    const user = await prisma.user.update({
+      where: { id: req.userId },
+      data: updateData,
+      select: { id: true, email: true, name: true, createdAt: true, updatedAt: true },
+    });
+
+    res.json({ user });
+  } catch (error) {
+    next(error);
+  }
+});
+
+export const authRouter: RouterType = router;
