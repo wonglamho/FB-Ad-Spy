@@ -1,10 +1,11 @@
-import { Router, Request, Response, NextFunction } from 'express';
+import { Router, Response, NextFunction } from 'express';
+import type { Router as RouterType } from 'express';
 import { z } from 'zod';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { prisma } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 
-const router = Router();
+const router: RouterType = Router();
 
 const createCollectionSchema = z.object({
   name: z.string().min(1).max(100),
@@ -12,7 +13,7 @@ const createCollectionSchema = z.object({
 });
 
 // Get all collections
-router.get('/', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get('/', authenticate, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const collections = await prisma.collection.findMany({
       where: { userId: req.userId },
@@ -31,7 +32,7 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response, next: Next
 });
 
 // Create collection
-router.post('/', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post('/', authenticate, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { name, description } = createCollectionSchema.parse(req.body);
     
@@ -50,7 +51,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response, next: Nex
 });
 
 // Get collection with ads
-router.get('/:id', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get('/:id', authenticate, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const collection = await prisma.collection.findFirst({
       where: {
@@ -75,7 +76,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response, next: N
 });
 
 // Update collection
-router.patch('/:id', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.patch('/:id', authenticate, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const data = createCollectionSchema.partial().parse(req.body);
     
@@ -102,7 +103,7 @@ router.patch('/:id', authenticate, async (req: AuthRequest, res: Response, next:
 });
 
 // Delete collection
-router.delete('/:id', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.delete('/:id', authenticate, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const result = await prisma.collection.deleteMany({
       where: {
@@ -121,4 +122,4 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res: Response, next
   }
 });
 
-export const collectionsRouter = router;
+export const collectionsRouter: RouterType = router;
