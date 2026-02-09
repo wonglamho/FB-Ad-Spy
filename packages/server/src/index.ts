@@ -50,9 +50,33 @@ app.use('/api/saved-ads', savedAdsRouter);
 // Error handler
 app.use(errorHandler);
 
+// Validate required environment variables
+function validateEnv() {
+  const required = ['JWT_SECRET'];
+  const missing = required.filter((key) => !process.env[key]);
+
+  if (missing.length > 0) {
+    logger.error(`Missing required environment variables: ${missing.join(', ')}`);
+    process.exit(1);
+  }
+
+  // Warnings for optional but important variables
+  if (!process.env.FACEBOOK_ACCESS_TOKEN) {
+    logger.warn('Warning: FACEBOOK_ACCESS_TOKEN is not set. Facebook API calls will fail.');
+  }
+
+  if (!process.env.FACEBOOK_APP_ID || !process.env.FACEBOOK_APP_SECRET) {
+    logger.warn('Warning: FACEBOOK_APP_ID or FACEBOOK_APP_SECRET is not set.');
+  }
+}
+
 // Start server
 async function main() {
   try {
+    // Validate environment variables
+    validateEnv();
+
+    // Connect to database
     await prisma.$connect();
     logger.info('Database connected');
 
@@ -61,6 +85,7 @@ async function main() {
 
     app.listen(PORT, () => {
       logger.info(`Server running on port ${PORT}`);
+      logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
     });
   } catch (error) {
     logger.error('Failed to start server:', error);
