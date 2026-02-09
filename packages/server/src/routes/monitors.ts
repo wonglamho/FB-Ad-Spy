@@ -1,11 +1,12 @@
-import { Router, Request, Response, NextFunction } from 'express';
+import { Router, Response, NextFunction } from 'express';
+import type { Router as RouterType } from 'express';
 import { z } from 'zod';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { prisma } from '../config/database';
 import { facebookApi } from '../services/facebookApi';
 import { AppError } from '../middleware/errorHandler';
 
-const router = Router();
+const router: RouterType = Router();
 
 const createMonitorSchema = z.object({
   pageId: z.string(),
@@ -13,7 +14,7 @@ const createMonitorSchema = z.object({
 });
 
 // Get all monitors for user
-router.get('/', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get('/', authenticate, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const monitors = await prisma.monitor.findMany({
       where: { userId: req.userId },
@@ -27,11 +28,10 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response, next: Next
 });
 
 // Create monitor
-router.post('/', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post('/', authenticate, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { pageId, pageName } = createMonitorSchema.parse(req.body);
     
-    // Check if already monitoring
     const existing = await prisma.monitor.findUnique({
       where: {
         userId_pageId: {
@@ -45,7 +45,6 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response, next: Nex
       throw new AppError('Already monitoring this page', 400);
     }
     
-    // Get page name from Facebook if not provided
     let finalPageName = pageName;
     if (!finalPageName) {
       const pageInfo = await facebookApi.getPageInfo(pageId);
@@ -67,7 +66,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response, next: Nex
 });
 
 // Get monitor details with recent ads
-router.get('/:id', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get('/:id', authenticate, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const monitor = await prisma.monitor.findFirst({
       where: {
@@ -80,7 +79,6 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response, next: N
       throw new AppError('Monitor not found', 404);
     }
     
-    // Fetch recent ads for this page
     const ads = await facebookApi.getAdsByPageId(monitor.pageId);
     
     res.json({ monitor, ads });
@@ -90,7 +88,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response, next: N
 });
 
 // Update monitor
-router.patch('/:id', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.patch('/:id', authenticate, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const updateSchema = z.object({
       isActive: z.boolean().optional(),
@@ -122,7 +120,7 @@ router.patch('/:id', authenticate, async (req: AuthRequest, res: Response, next:
 });
 
 // Delete monitor
-router.delete('/:id', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.delete('/:id', authenticate, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const result = await prisma.monitor.deleteMany({
       where: {
@@ -141,4 +139,4 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res: Response, next
   }
 });
 
-export const monitorsRouter = router;
+export const monitorsRouter: RouterType = router;
