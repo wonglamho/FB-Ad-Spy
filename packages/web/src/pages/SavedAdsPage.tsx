@@ -10,7 +10,6 @@ export default function SavedAdsPage() {
     selectedTag ? { tag: selectedTag } : undefined
   );
   const { data: tagsData } = useTags();
-  const deleteSavedAd = useDeleteSavedAd();
 
   const savedAds = savedAdsData?.data?.savedAds || [];
   const tags = tagsData?.data?.tags || [];
