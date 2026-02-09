@@ -1,10 +1,11 @@
-import { Router, Request, Response, NextFunction } from 'express';
+import { Router, Response, NextFunction } from 'express';
+import type { Router as RouterType } from 'express';
 import { z } from 'zod';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { facebookApi } from '../services/facebookApi';
 import { prisma } from '../config/database';
 
-const router = Router();
+const router: RouterType = Router();
 
 const searchSchema = z.object({
   searchTerms: z.string().optional(),
@@ -21,11 +22,10 @@ const searchSchema = z.object({
 });
 
 // Search ads
-router.post('/search', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post('/search', authenticate, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const params = searchSchema.parse(req.body);
     
-    // Save search history
     await prisma.searchHistory.create({
       data: {
         userId: req.userId!,
@@ -44,7 +44,7 @@ router.post('/search', authenticate, async (req: AuthRequest, res: Response, nex
 });
 
 // Get ads by page ID
-router.get('/page/:pageId', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get('/page/:pageId', authenticate, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { pageId } = req.params;
     const countries = req.query.countries 
@@ -59,13 +59,14 @@ router.get('/page/:pageId', authenticate, async (req: AuthRequest, res: Response
 });
 
 // Get page info
-router.get('/page-info/:pageId', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get('/page-info/:pageId', authenticate, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { pageId } = req.params;
     const pageInfo = await facebookApi.getPageInfo(pageId);
     
     if (!pageInfo) {
-      return res.status(404).json({ error: 'Page not found' });
+      res.status(404).json({ error: 'Page not found' });
+      return;
     }
     
     res.json(pageInfo);
@@ -75,7 +76,7 @@ router.get('/page-info/:pageId', authenticate, async (req: AuthRequest, res: Res
 });
 
 // Get search history
-router.get('/history', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.get('/history', authenticate, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const history = await prisma.searchHistory.findMany({
       where: { userId: req.userId },
@@ -89,4 +90,4 @@ router.get('/history', authenticate, async (req: AuthRequest, res: Response, nex
   }
 });
 
-export const adsRouter = router;
+export const adsRouter: RouterType = router;
