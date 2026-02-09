@@ -6,7 +6,6 @@ import AdCard from '../components/AdCard';
 export default function CollectionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data, isLoading } = useCollection(id!);
-  const deleteSavedAd = useDeleteSavedAd();
 
   const collection = data?.data?.collection;
   const savedAds = collection?.savedAds || [];
