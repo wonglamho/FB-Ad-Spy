@@ -1,11 +1,11 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { prisma } from '../config/database';
 import { facebookApi } from '../services/facebookApi';
 import { AppError } from '../middleware/errorHandler';
 
-export const monitorsRouter = Router();
+const router = Router();
 
 const createMonitorSchema = z.object({
   pageId: z.string(),
@@ -13,7 +13,7 @@ const createMonitorSchema = z.object({
 });
 
 // Get all monitors for user
-monitorsRouter.get('/', authenticate, async (req: AuthRequest, res, next) => {
+router.get('/', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const monitors = await prisma.monitor.findMany({
       where: { userId: req.userId },
@@ -27,7 +27,7 @@ monitorsRouter.get('/', authenticate, async (req: AuthRequest, res, next) => {
 });
 
 // Create monitor
-monitorsRouter.post('/', authenticate, async (req: AuthRequest, res, next) => {
+router.post('/', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { pageId, pageName } = createMonitorSchema.parse(req.body);
     
@@ -67,7 +67,7 @@ monitorsRouter.post('/', authenticate, async (req: AuthRequest, res, next) => {
 });
 
 // Get monitor details with recent ads
-monitorsRouter.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
+router.get('/:id', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const monitor = await prisma.monitor.findFirst({
       where: {
@@ -90,7 +90,7 @@ monitorsRouter.get('/:id', authenticate, async (req: AuthRequest, res, next) => 
 });
 
 // Update monitor
-monitorsRouter.patch('/:id', authenticate, async (req: AuthRequest, res, next) => {
+router.patch('/:id', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const updateSchema = z.object({
       isActive: z.boolean().optional(),
@@ -99,7 +99,7 @@ monitorsRouter.patch('/:id', authenticate, async (req: AuthRequest, res, next) =
     
     const data = updateSchema.parse(req.body);
     
-    const monitor = await prisma.monitor.updateMany({
+    const result = await prisma.monitor.updateMany({
       where: {
         id: req.params.id,
         userId: req.userId,
@@ -107,7 +107,7 @@ monitorsRouter.patch('/:id', authenticate, async (req: AuthRequest, res, next) =
       data,
     });
     
-    if (monitor.count === 0) {
+    if (result.count === 0) {
       throw new AppError('Monitor not found', 404);
     }
     
@@ -122,7 +122,7 @@ monitorsRouter.patch('/:id', authenticate, async (req: AuthRequest, res, next) =
 });
 
 // Delete monitor
-monitorsRouter.delete('/:id', authenticate, async (req: AuthRequest, res, next) => {
+router.delete('/:id', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const result = await prisma.monitor.deleteMany({
       where: {
@@ -140,3 +140,5 @@ monitorsRouter.delete('/:id', authenticate, async (req: AuthRequest, res, next) 
     next(error);
   }
 });
+
+export const monitorsRouter = router;
