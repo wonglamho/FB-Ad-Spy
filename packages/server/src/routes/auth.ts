@@ -1,13 +1,21 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import type { Router as RouterType } from 'express';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions, Secret } from 'jsonwebtoken';
 import { z } from 'zod';
 import { prisma } from '../config/database';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { AppError } from '../middleware/errorHandler';
 
 const router: RouterType = Router();
+const JWT_SECRET: Secret = process.env.JWT_SECRET || 'fallback-dev-secret-please-change';
+const JWT_EXPIRES_IN: string = process.env.JWT_EXPIRES_IN || '7d';
+function generateToken(userId: number): string {
+  const signOptions: SignOptions = {
+    expiresIn: JWT_EXPIRES_IN,
+  };
+  return jwt.sign({ userId }, JWT_SECRET, signOptions);
+}
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -36,11 +44,7 @@ router.post('/register', async (req: Request, res: Response, next: NextFunction)
       select: { id: true, email: true, name: true, createdAt: true, updatedAt: true },
     });
 
-    const token = jwt.sign(
-      { userId: user.id },
-      process.env.JWT_SECRET!,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
-    );
+    const token = generateToken(user.id);
 
     res.status(201).json({ user, token });
   } catch (error) {
@@ -63,11 +67,7 @@ router.post('/login', async (req: Request, res: Response, next: NextFunction): P
       throw new AppError('Invalid credentials', 401);
     }
 
-    const token = jwt.sign(
-      { userId: user.id },
-      process.env.JWT_SECRET!,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
-    );
+    const token = generateToken(user.id);
 
     const { password: _, ...userWithoutPassword } = user;
     res.json({ user: userWithoutPassword, token });
