@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Loader2 } from 'lucide-react';
-import { useCollection, useDeleteSavedAd } from '../hooks/useCollections';
+import { useCollection } from '../hooks/useCollections';
 import AdCard from '../components/AdCard';
 
 export default function CollectionDetailPage() {
