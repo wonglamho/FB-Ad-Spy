@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
@@ -6,7 +6,7 @@ import { prisma } from '../config/database';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { AppError } from '../middleware/errorHandler';
 
-export const authRouter = Router();
+const router = Router();
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -20,7 +20,7 @@ const loginSchema = z.object({
 });
 
 // Register
-authRouter.post('/register', async (req, res, next) => {
+router.post('/register', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, password, name } = registerSchema.parse(req.body);
 
@@ -35,9 +35,11 @@ authRouter.post('/register', async (req, res, next) => {
       select: { id: true, email: true, name: true, createdAt: true, updatedAt: true },
     });
 
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, {
-      expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-    });
+    const token = jwt.sign(
+      { userId: user.id },
+      process.env.JWT_SECRET as string,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' } as jwt.SignOptions
+    );
 
     res.status(201).json({ user, token });
   } catch (error) {
@@ -46,7 +48,7 @@ authRouter.post('/register', async (req, res, next) => {
 });
 
 // Login
-authRouter.post('/login', async (req, res, next) => {
+router.post('/login', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, password } = loginSchema.parse(req.body);
 
@@ -60,9 +62,11 @@ authRouter.post('/login', async (req, res, next) => {
       throw new AppError('Invalid credentials', 401);
     }
 
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, {
-      expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-    });
+    const token = jwt.sign(
+      { userId: user.id },
+      process.env.JWT_SECRET as string,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' } as jwt.SignOptions
+    );
 
     const { password: _, ...userWithoutPassword } = user;
     res.json({ user: userWithoutPassword, token });
@@ -72,7 +76,7 @@ authRouter.post('/login', async (req, res, next) => {
 });
 
 // Get current user
-authRouter.get('/me', authenticate, async (req: AuthRequest, res, next) => {
+router.get('/me', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
@@ -90,7 +94,7 @@ authRouter.get('/me', authenticate, async (req: AuthRequest, res, next) => {
 });
 
 // Update profile
-authRouter.patch('/me', authenticate, async (req: AuthRequest, res, next) => {
+router.patch('/me', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const updateSchema = z.object({
       name: z.string().min(2).optional(),
@@ -99,7 +103,7 @@ authRouter.patch('/me', authenticate, async (req: AuthRequest, res, next) => {
 
     const data = updateSchema.parse(req.body);
     
-    const updateData: any = {};
+    const updateData: { name?: string; password?: string } = {};
     if (data.name) updateData.name = data.name;
     if (data.password) updateData.password = await bcrypt.hash(data.password, 12);
 
@@ -114,3 +118,5 @@ authRouter.patch('/me', authenticate, async (req: AuthRequest, res, next) => {
     next(error);
   }
 });
+
+export const authRouter = router;
