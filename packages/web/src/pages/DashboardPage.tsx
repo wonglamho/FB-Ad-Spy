@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Search, Eye, Bookmark, FolderOpen, TrendingUp } from 'lucide-react';
+import { Search, Eye, Bookmark, FolderOpen } from 'lucide-react';
 import { useMonitors } from '../hooks/useMonitors';
 import { useCollections, useSavedAds } from '../hooks/useCollections';
 import { useAuthStore } from '../stores/authStore';
