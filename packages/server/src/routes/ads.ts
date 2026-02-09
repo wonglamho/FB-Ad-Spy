@@ -1,10 +1,10 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { facebookApi } from '../services/facebookApi';
 import { prisma } from '../config/database';
 
-export const adsRouter = Router();
+const router = Router();
 
 const searchSchema = z.object({
   searchTerms: z.string().optional(),
@@ -21,7 +21,7 @@ const searchSchema = z.object({
 });
 
 // Search ads
-adsRouter.post('/search', authenticate, async (req: AuthRequest, res, next) => {
+router.post('/search', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const params = searchSchema.parse(req.body);
     
@@ -44,7 +44,7 @@ adsRouter.post('/search', authenticate, async (req: AuthRequest, res, next) => {
 });
 
 // Get ads by page ID
-adsRouter.get('/page/:pageId', authenticate, async (req: AuthRequest, res, next) => {
+router.get('/page/:pageId', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { pageId } = req.params;
     const countries = req.query.countries 
@@ -59,7 +59,7 @@ adsRouter.get('/page/:pageId', authenticate, async (req: AuthRequest, res, next)
 });
 
 // Get page info
-adsRouter.get('/page-info/:pageId', authenticate, async (req: AuthRequest, res, next) => {
+router.get('/page-info/:pageId', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { pageId } = req.params;
     const pageInfo = await facebookApi.getPageInfo(pageId);
@@ -75,7 +75,7 @@ adsRouter.get('/page-info/:pageId', authenticate, async (req: AuthRequest, res, 
 });
 
 // Get search history
-adsRouter.get('/history', authenticate, async (req: AuthRequest, res, next) => {
+router.get('/history', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const history = await prisma.searchHistory.findMany({
       where: { userId: req.userId },
@@ -88,3 +88,5 @@ adsRouter.get('/history', authenticate, async (req: AuthRequest, res, next) => {
     next(error);
   }
 });
+
+export const adsRouter = router;
