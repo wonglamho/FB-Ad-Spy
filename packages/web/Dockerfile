@@ -2,16 +2,25 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Install pnpm
 RUN npm install -g pnpm
 
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+# Copy workspace config and package files
+COPY pnpm-workspace.yaml package.json ./
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/web/package.json ./packages/web/
+
+# Install dependencies
+RUN pnpm install
+
+# Copy source code
 COPY packages/shared ./packages/shared
 COPY packages/web ./packages/web
 
-RUN pnpm install --frozen-lockfile
+# Build
 RUN pnpm --filter web run build
 
-# Production stage with nginx
+# Production stage
 FROM node:20-alpine
 
 RUN npm install -g serve
