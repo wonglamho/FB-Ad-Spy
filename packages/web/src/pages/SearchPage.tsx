@@ -45,6 +45,9 @@ export default function SearchPage() {
 
     if (searchTerms.trim()) {
       params.searchTerms = searchTerms.trim();
+    } else if (!pageIds.trim()) {
+      // 关键词和 Page ID 都为空时，用空格触发广泛搜索
+      params.searchTerms = ' ';
     }
 
     if (pageIds.trim()) {
