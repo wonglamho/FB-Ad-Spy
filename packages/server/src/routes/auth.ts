@@ -9,7 +9,7 @@ import { AppError } from '../middleware/errorHandler';
 
 const router: RouterType = Router();
 const JWT_SECRET: Secret = process.env.JWT_SECRET || 'fallback-dev-secret-please-change';
-function generateToken(userId: string | number): string {
+function generateToken(userId: string): string {
   return jwt.sign(
     { userId },
     JWT_SECRET,
