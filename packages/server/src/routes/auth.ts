@@ -9,12 +9,12 @@ import { AppError } from '../middleware/errorHandler';
 
 const router: RouterType = Router();
 const JWT_SECRET: Secret = process.env.JWT_SECRET || 'fallback-dev-secret-please-change';
-const JWT_EXPIRES_IN: string = process.env.JWT_EXPIRES_IN || '7d';
-function generateToken(userId: number): string {
-  const signOptions: SignOptions = {
-    expiresIn: JWT_EXPIRES_IN,
-  };
-  return jwt.sign({ userId }, JWT_SECRET, signOptions);
+function generateToken(userId: string | number): string {
+  return jwt.sign(
+    { userId },
+    JWT_SECRET,
+    { expiresIn: 60 * 60 * 24 * 7 } as SignOptions   // 7天，用秒数代替字符串
+  );
 }
 
 const registerSchema = z.object({
