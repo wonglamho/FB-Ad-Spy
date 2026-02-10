@@ -53,6 +53,10 @@ export class FacebookApiService {
   }
 
   async searchAds(params: AdSearchParams): Promise<{ ads: FacebookAd[]; nextCursor?: string }> {
+    // 当没有 searchTerms 也没有 searchPageIds 时，使用通配搜索
+    if (!params.searchTerms && (!params.searchPageIds || params.searchPageIds.length === 0)) {
+      params.searchTerms = ' ';  // 空格，Facebook API 会返回广泛结果
+    }
     const cacheKey = `ads:search:${JSON.stringify(params)}`;
     
     // Check cache first
@@ -117,6 +121,13 @@ export class FacebookApiService {
         queryParams.media_type = params.mediaType;
       }
 
+      // 增加调试日志，确认 access token 和请求参数
+      logger.info('Facebook API request params:', {
+        hasAccessToken: !!this.accessToken,
+        tokenPrefix: this.accessToken.substring(0, 10) + '...',
+        searchTerms: params.searchTerms,
+        countries: params.adReachedCountries,
+      });
       const response = await this.client.get<FacebookApiResponse>('/ads_archive', {
         params: queryParams,
       });
@@ -128,7 +139,9 @@ export class FacebookApiService {
       };
 
       // Cache the result
-      await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(result));
+      if (ads.length > 0) {
+        await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(result));
+      }
 
       return result;
     } catch (error: any) {
