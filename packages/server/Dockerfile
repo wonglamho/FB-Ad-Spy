@@ -10,8 +10,8 @@ COPY pnpm-workspace.yaml package.json ./
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/server/package.json ./packages/server/
 
-# Install dependencies
-RUN pnpm install
+# Install all dependencies (including devDependencies for build)
+RUN pnpm install --frozen-lockfile || pnpm install
 
 # Copy source code
 COPY packages/shared ./packages/shared
@@ -20,33 +20,33 @@ COPY packages/server ./packages/server
 # Generate Prisma client
 RUN pnpm --filter server run db:generate
 
-# Build
+# Build server
 RUN pnpm --filter server run build
 
-# Production stage
+# ============ Production Stage ============
 FROM node:20-alpine
 
 WORKDIR /app
 
-# Install pnpm
-RUN npm install -g pnpm
+# Install only the prisma CLI globally for db push at startup
+RUN npm install -g prisma@5
 
-# Copy package files for production install
-COPY packages/server/package.json ./
-COPY packages/server/prisma ./prisma
+# Copy Prisma schema and generated client from builder
+COPY --from=builder /app/packages/server/prisma ./prisma
+COPY --from=builder /app/packages/server/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/packages/server/node_modules/@prisma ./node_modules/@prisma
 
-# Install production dependencies + prisma CLI
-RUN pnpm install --prod && pnpm add -D prisma
-
-# Generate Prisma client in production stage
-RUN npx prisma generate
-
-# Copy built files from builder
+# Copy built server code
 COPY --from=builder /app/packages/server/dist ./dist
+COPY --from=builder /app/packages/server/package.json ./
 
-# Copy shared package (needed at runtime for type references)
-COPY --from=builder /app/packages/shared /app/node_modules/@fb-ad-spy/shared
+# Copy node_modules from builder (root first, then server-specific to overwrite)
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/packages/server/node_modules ./node_modules
+
+# Copy shared package source into node_modules for runtime resolution
+COPY --from=builder /app/packages/shared ./node_modules/@fb-ad-spy/shared
 
 EXPOSE 3001
 
-CMD ["sh", "-c", "npx prisma db push --skip-generate && node dist/index.js"]
+CMD ["sh", "-c", "prisma db push --skip-generate && node dist/index.js"]
