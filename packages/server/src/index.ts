@@ -61,12 +61,8 @@ function validateEnv() {
   }
 
   // Warnings for optional but important variables
-  if (!process.env.FACEBOOK_ACCESS_TOKEN) {
-    logger.warn('Warning: FACEBOOK_ACCESS_TOKEN is not set. Facebook API calls will fail.');
-  }
-
-  if (!process.env.FACEBOOK_APP_ID || !process.env.FACEBOOK_APP_SECRET) {
-    logger.warn('Warning: FACEBOOK_APP_ID or FACEBOOK_APP_SECRET is not set.');
+  if (!process.env.SEARCHAPI_API_KEY) {
+    logger.warn('Warning: SEARCHAPI_API_KEY is not set. SearchAPI calls will fail.');
   }
 }
 
