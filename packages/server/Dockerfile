@@ -23,21 +23,18 @@ RUN pnpm --filter server run db:generate
 # Build server
 RUN pnpm --filter server run build
 
-# Debug: find where prisma client was generated (helps future troubleshooting)
-RUN find /app -path "*/node_modules/.prisma" -type d 2>/dev/null || true
-
 # ============ Production Stage ============
 FROM node:20-alpine
 
 WORKDIR /app
 
-# Install prisma CLI globally for db push at startup
-RUN npm install -g prisma@5
+# Install OpenSSL compatibility libraries (required by Prisma on Alpine)
+RUN apk add --no-cache openssl
 
 # Copy Prisma schema
 COPY --from=builder /app/packages/server/prisma ./prisma
 
-# Copy ALL node_modules from root (contains .prisma, @prisma, and all deps)
+# Copy ALL node_modules from root
 COPY --from=builder /app/node_modules ./node_modules
 
 # Copy shared package source for runtime resolution
@@ -49,4 +46,4 @@ COPY --from=builder /app/packages/server/package.json ./
 
 EXPOSE 3001
 
-CMD ["sh", "-c", "prisma db push --skip-generate && node dist/index.js"]
+CMD ["sh", "-c", "npx prisma db push --skip-generate && node dist/index.js"]
