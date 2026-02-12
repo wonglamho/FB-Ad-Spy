@@ -30,4 +30,3 @@ COPY --from=builder /app/packages/server/dist ./dist
 EXPOSE 3001
 
 CMD ["node", "dist/index.js"]
-EOF
