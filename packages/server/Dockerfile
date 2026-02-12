@@ -10,8 +10,8 @@ COPY pnpm-workspace.yaml package.json ./
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/server/package.json ./packages/server/
 
-# Install dependencies
-RUN pnpm install
+# Install all dependencies
+RUN pnpm install --frozen-lockfile || pnpm install
 
 # Copy source code
 COPY packages/shared ./packages/shared
@@ -20,33 +20,33 @@ COPY packages/server ./packages/server
 # Generate Prisma client
 RUN pnpm --filter server run db:generate
 
-# Build
+# Build server
 RUN pnpm --filter server run build
 
-# Production stage
+# Debug: find where prisma client was generated (helps future troubleshooting)
+RUN find /app -path "*/node_modules/.prisma" -type d 2>/dev/null || true
+
+# ============ Production Stage ============
 FROM node:20-alpine
 
 WORKDIR /app
 
-# Install pnpm
-RUN npm install -g pnpm
+# Install prisma CLI globally for db push at startup
+RUN npm install -g prisma@5
 
-# Copy package files for production install
-COPY packages/server/package.json ./
-COPY packages/server/prisma ./prisma
+# Copy Prisma schema
+COPY --from=builder /app/packages/server/prisma ./prisma
 
-# Install production dependencies + prisma CLI
-RUN pnpm install --prod && pnpm add -D prisma
+# Copy ALL node_modules from root (contains .prisma, @prisma, and all deps)
+COPY --from=builder /app/node_modules ./node_modules
 
-# Generate Prisma client in production stage
-RUN npx prisma generate
+# Copy shared package source for runtime resolution
+COPY --from=builder /app/packages/shared ./node_modules/@fb-ad-spy/shared
 
-# Copy built files from builder
+# Copy built server code
 COPY --from=builder /app/packages/server/dist ./dist
-
-# Copy shared package (needed at runtime for type references)
-COPY --from=builder /app/packages/shared /app/node_modules/@fb-ad-spy/shared
+COPY --from=builder /app/packages/server/package.json ./
 
 EXPOSE 3001
 
-CMD ["sh", "-c", "npx prisma db push --skip-generate && node dist/index.js"]
+CMD ["sh", "-c", "prisma db push --skip-generate && node dist/index.js"]
