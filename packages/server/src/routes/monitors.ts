@@ -3,7 +3,7 @@ import type { Router as RouterType } from 'express';
 import { z } from 'zod';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { prisma } from '../config/database';
-import { facebookApi } from '../services/facebookApi';
+import { searchApi } from '../services/searchApi';
 import { AppError } from '../middleware/errorHandler';
 
 const router: RouterType = Router();
@@ -20,7 +20,7 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response, next: Next
       where: { userId: req.userId },
       orderBy: { createdAt: 'desc' },
     });
-    
+
     res.json({ monitors });
   } catch (error) {
     next(error);
@@ -31,7 +31,7 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response, next: Next
 router.post('/', authenticate, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { pageId, pageName } = createMonitorSchema.parse(req.body);
-    
+
     const existing = await prisma.monitor.findUnique({
       where: {
         userId_pageId: {
@@ -40,17 +40,17 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response, next: Nex
         },
       },
     });
-    
+
     if (existing) {
       throw new AppError('Already monitoring this page', 400);
     }
-    
+
     let finalPageName = pageName;
     if (!finalPageName) {
-      const pageInfo = await facebookApi.getPageInfo(pageId);
+      const pageInfo = await searchApi.getPageInfo(pageId);
       finalPageName = pageInfo?.name || `Page ${pageId}`;
     }
-    
+
     const monitor = await prisma.monitor.create({
       data: {
         userId: req.userId!,
@@ -58,7 +58,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response, next: Nex
         pageName: finalPageName,
       },
     });
-    
+
     res.status(201).json({ monitor });
   } catch (error) {
     next(error);
@@ -74,13 +74,12 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response, next: N
         userId: req.userId,
       },
     });
-    
+
     if (!monitor) {
       throw new AppError('Monitor not found', 404);
     }
-    
-    const ads = await facebookApi.getAdsByPageId(monitor.pageId);
-    
+
+    const ads = await searchApi.getAdsByPageId(monitor.pageId);
     res.json({ monitor, ads });
   } catch (error) {
     next(error);
@@ -94,9 +93,9 @@ router.patch('/:id', authenticate, async (req: AuthRequest, res: Response, next:
       isActive: z.boolean().optional(),
       pageName: z.string().optional(),
     });
-    
+
     const data = updateSchema.parse(req.body);
-    
+
     const result = await prisma.monitor.updateMany({
       where: {
         id: req.params.id,
@@ -104,15 +103,15 @@ router.patch('/:id', authenticate, async (req: AuthRequest, res: Response, next:
       },
       data,
     });
-    
+
     if (result.count === 0) {
       throw new AppError('Monitor not found', 404);
     }
-    
+
     const updated = await prisma.monitor.findUnique({
       where: { id: req.params.id },
     });
-    
+
     res.json({ monitor: updated });
   } catch (error) {
     next(error);
@@ -128,11 +127,11 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res: Response, next
         userId: req.userId,
       },
     });
-    
+
     if (result.count === 0) {
       throw new AppError('Monitor not found', 404);
     }
-    
+
     res.json({ success: true });
   } catch (error) {
     next(error);
