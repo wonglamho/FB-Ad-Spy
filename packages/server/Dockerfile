@@ -1,4 +1,3 @@
-cat > packages/server/Dockerfile << 'EOF'
 FROM node:20-alpine AS builder
 
 WORKDIR /app
