@@ -23,22 +23,30 @@ RUN pnpm --filter server run db:generate
 # Build server
 RUN pnpm --filter server run build
 
+# Prepare a clean node_modules for production:
+# Use pnpm deploy to flatten all dependencies into a standalone directory
+RUN pnpm --filter server deploy --prod /app/production
+
+# Copy generated prisma client into the production node_modules
+RUN cp -r /app/node_modules/.prisma /app/production/node_modules/.prisma 2>/dev/null || true
+RUN cp -r /app/node_modules/@prisma /app/production/node_modules/@prisma 2>/dev/null || true
+
 # ============ Production Stage ============
 FROM node:20-alpine
 
 WORKDIR /app
 
-# Install OpenSSL compatibility libraries (required by Prisma on Alpine)
+# Install OpenSSL (required by Prisma on Alpine)
 RUN apk add --no-cache openssl
+
+# Copy production-ready node_modules (flattened, no symlinks)
+COPY --from=builder /app/production/node_modules ./node_modules
+
+# Copy shared package for runtime resolution
+COPY --from=builder /app/packages/shared ./node_modules/@fb-ad-spy/shared
 
 # Copy Prisma schema
 COPY --from=builder /app/packages/server/prisma ./prisma
-
-# Copy ALL node_modules from root
-COPY --from=builder /app/node_modules ./node_modules
-
-# Copy shared package source for runtime resolution
-COPY --from=builder /app/packages/shared ./node_modules/@fb-ad-spy/shared
 
 # Copy built server code
 COPY --from=builder /app/packages/server/dist ./dist
@@ -46,4 +54,5 @@ COPY --from=builder /app/packages/server/package.json ./
 
 EXPOSE 3001
 
-CMD ["sh", "-c", "npx prisma db push --skip-generate && node dist/index.js"]
+# Use node to call prisma programmatically, then start server
+CMD ["sh", "-c", "node ./node_modules/.prisma/../prisma/build/index.js db push --schema=./prisma/schema.prisma 2>/dev/null; node dist/index.js"]
