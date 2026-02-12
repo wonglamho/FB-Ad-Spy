@@ -6,6 +6,8 @@ import type { AdSearchParams, FacebookAd } from '@fb-ad-spy/shared';
 const SEARCHAPI_BASE = 'https://www.searchapi.io/api/v1/search';
 const CACHE_TTL = 3600; // 1 hour
 
+// ============ SearchAPI Response Types ============
+
 interface SearchApiAdSnapshot {
   page_id?: string;
   page_profile_uri?: string;
@@ -54,6 +56,7 @@ interface SearchApiResponse {
   search_parameters: Record<string, any>;
   search_information: {
     ads_count?: number;
+    total_results?: number;
     ad_library_page_info?: {
       page_name?: string;
       page_id?: string;
@@ -71,6 +74,8 @@ interface SearchApiResponse {
     next_page_token?: string;
   };
 }
+
+// ============ Service ============
 
 export class SearchApiService {
   private client: AxiosInstance;
@@ -110,6 +115,9 @@ export class SearchApiService {
     // Build ad snapshot URL (link back to Facebook Ad Library)
     const adSnapshotUrl = `https://www.facebook.com/ads/library/?id=${raw.ad_archive_id}`;
 
+    // Normalize publisher platforms to lowercase
+    const platforms = (raw.publisher_platform || []).map((p) => p.toLowerCase());
+
     // Extract video URLs
     const videoUrls: string[] = [];
     if (snapshot.videos) {
@@ -128,9 +136,6 @@ export class SearchApiService {
       }
     }
 
-    // Normalize publisher platforms to lowercase
-    const platforms = (raw.publisher_platform || []).map((p) => p.toLowerCase());
-
     return {
       id: raw.ad_archive_id,
       adArchiveId: raw.ad_archive_id,
@@ -146,6 +151,7 @@ export class SearchApiService {
       adSnapshotUrl,
       publisherPlatforms: platforms,
       languages: [],
+      // SearchAPI does not return spend/impressions ranges, leave undefined
       currency: undefined,
       spend: undefined,
       impressions: undefined,
@@ -202,6 +208,24 @@ export class SearchApiService {
     // Media type
     if (params.mediaType && params.mediaType !== 'ALL') {
       query.media_type = params.mediaType.toLowerCase();
+    }
+
+    // Publisher platforms
+    if (params.publisherPlatforms?.length) {
+      query.platforms = params.publisherPlatforms.join(',').toLowerCase();
+    }
+
+    // Date range
+    if (params.adDeliveryDateMin) {
+      query.start_date = params.adDeliveryDateMin;
+    }
+    if (params.adDeliveryDateMax) {
+      query.end_date = params.adDeliveryDateMax;
+    }
+
+    // Content languages
+    if (params.languages?.length) {
+      query.content_languages = params.languages.join(',');
     }
 
     return query;
@@ -302,14 +326,7 @@ export class SearchApiService {
    */
   async getPageInfo(
     pageId: string
-  ): Promise<{
-    id: string;
-    name: string;
-    likes?: number;
-    category?: string;
-    igUsername?: string;
-    igFollowers?: number;
-  } | null> {
+  ): Promise<{ id: string; name: string } | null> {
     const cacheKey = `page:info:${pageId}`;
 
     const cached = await redis.get(cacheKey);
@@ -337,10 +354,6 @@ export class SearchApiService {
       const result = {
         id: pageInfo.page_id || pageId,
         name: pageInfo.page_name || `Page ${pageId}`,
-        likes: pageInfo.likes,
-        category: pageInfo.page_category,
-        igUsername: pageInfo.ig_username,
-        igFollowers: pageInfo.ig_followers,
       };
 
       // Cache page info for 6 hours
