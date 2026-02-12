@@ -1,6 +1,6 @@
 import cron from 'node-cron';
 import { prisma } from '../config/database';
-import { facebookApi } from '../services/facebookApi';
+import { searchApi } from '../services/searchApi';
 import { logger } from '../utils/logger';
 
 export function startScheduler() {
@@ -28,8 +28,8 @@ async function checkMonitors() {
     for (const monitor of activeMonitors) {
       try {
         // Fetch latest ads for this page
-        const ads = await facebookApi.getAdsByPageId(monitor.pageId);
-        
+        const ads = await searchApi.getAdsByPageId(monitor.pageId);
+
         // Update last checked time
         await prisma.monitor.update({
           where: { id: monitor.id },
@@ -71,7 +71,7 @@ async function cleanupCache() {
         expiresAt: { lt: new Date() },
       },
     });
-    
+
     logger.info(`Cleaned up ${result.count} expired cached ads`);
   } catch (error) {
     logger.error('Cache cleanup job failed:', error);
