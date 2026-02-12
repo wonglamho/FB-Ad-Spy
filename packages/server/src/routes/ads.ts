@@ -2,7 +2,7 @@ import { Router, Response, NextFunction } from 'express';
 import type { Router as RouterType } from 'express';
 import { z } from 'zod';
 import { authenticate, AuthRequest } from '../middleware/auth';
-import { facebookApi } from '../services/facebookApi';
+import { searchApi } from '../services/searchApi';
 import { prisma } from '../config/database';
 
 const router: RouterType = Router();
@@ -25,7 +25,7 @@ const searchSchema = z.object({
 router.post('/search', authenticate, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const params = searchSchema.parse(req.body);
-    
+
     await prisma.searchHistory.create({
       data: {
         userId: req.userId!,
@@ -36,7 +36,7 @@ router.post('/search', authenticate, async (req: AuthRequest, res: Response, nex
       },
     });
 
-    const result = await facebookApi.searchAds(params);
+    const result = await searchApi.searchAds(params);
     res.json(result);
   } catch (error) {
     next(error);
@@ -47,11 +47,11 @@ router.post('/search', authenticate, async (req: AuthRequest, res: Response, nex
 router.get('/page/:pageId', authenticate, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { pageId } = req.params;
-    const countries = req.query.countries 
-      ? (req.query.countries as string).split(',') 
+    const countries = req.query.countries
+      ? (req.query.countries as string).split(',')
       : ['ALL'];
-    
-    const ads = await facebookApi.getAdsByPageId(pageId, countries);
+
+    const ads = await searchApi.getAdsByPageId(pageId, countries);
     res.json({ ads });
   } catch (error) {
     next(error);
@@ -62,13 +62,13 @@ router.get('/page/:pageId', authenticate, async (req: AuthRequest, res: Response
 router.get('/page-info/:pageId', authenticate, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { pageId } = req.params;
-    const pageInfo = await facebookApi.getPageInfo(pageId);
-    
+    const pageInfo = await searchApi.getPageInfo(pageId);
+
     if (!pageInfo) {
       res.status(404).json({ error: 'Page not found' });
       return;
     }
-    
+
     res.json(pageInfo);
   } catch (error) {
     next(error);
@@ -83,7 +83,7 @@ router.get('/history', authenticate, async (req: AuthRequest, res: Response, nex
       orderBy: { createdAt: 'desc' },
       take: 20,
     });
-    
+
     res.json({ history });
   } catch (error) {
     next(error);
