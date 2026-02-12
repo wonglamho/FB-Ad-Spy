@@ -42,6 +42,17 @@ export interface FacebookAd {
   currency?: string;
   spend?: { lowerBound: string; upperBound: string };
   impressions?: { lowerBound: string; upperBound: string };
+
+  // Extended fields from SearchAPI (optional, backward compatible)
+  isActive?: boolean;
+  displayFormat?: string;
+  ctaText?: string;
+  ctaType?: string;
+  linkUrl?: string;
+  videoUrls?: string[];
+  imageUrls?: string[];
+  pageProfilePictureUrl?: string;
+  totalActiveTime?: number;
 }
 
 export interface AdSearchParams {
