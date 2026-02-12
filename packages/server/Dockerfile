@@ -28,12 +28,25 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy built files and dependencies
+# Install pnpm
+RUN npm install -g pnpm
+
+# Copy package files for production install
+COPY packages/server/package.json ./
+COPY packages/server/prisma ./prisma
+
+# Install production dependencies + prisma CLI
+RUN pnpm install --prod && pnpm add -D prisma
+
+# Generate Prisma client in production stage
+RUN npx prisma generate
+
+# Copy built files from builder
 COPY --from=builder /app/packages/server/dist ./dist
-COPY --from=builder /app/packages/server/package.json ./
-COPY --from=builder /app/packages/server/prisma ./prisma
-COPY --from=builder /app/node_modules ./node_modules
+
+# Copy shared package (needed at runtime for type references)
+COPY --from=builder /app/packages/shared /app/node_modules/@fb-ad-spy/shared
 
 EXPOSE 3001
 
-CMD ["sh", "-c", "./node_modules/.bin/prisma db push && node dist/index.js"]
+CMD ["sh", "-c", "npx prisma db push --skip-generate && node dist/index.js"]
